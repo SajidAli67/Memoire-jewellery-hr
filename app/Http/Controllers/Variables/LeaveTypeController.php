@@ -6,7 +6,7 @@ namespace App\Http\Controllers\Variables;
 use App\Models\Employee;
 use App\Models\EmployeeLeaveTypeDetail;
 use App\Http\traits\LeaveTypeDataManageTrait;
-use App\Models\leaveType;
+use App\Models\LeaveType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
