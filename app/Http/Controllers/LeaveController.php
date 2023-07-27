@@ -6,7 +6,7 @@ use App\Models\company;
 use App\Models\department;
 use App\Models\Employee;
 use App\Models\leave;
-use App\Models\leaveType;
+use App\Models\LeaveType;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Validator;
@@ -155,6 +155,8 @@ class LeaveController extends Controller
 
                 //Mail
                 $department = department::with('DepartmentHead:id,email')->where('id', $request->department_id)->first();
+                
+                if(!empty($department->DepartmentHead)){
                 Notification::route('mail', $department->DepartmentHead->email)
                     ->notify(new EmployeeLeaveNotification(
                         $leave->employee->full_name,
@@ -163,6 +165,7 @@ class LeaveController extends Controller
                         $leave->end_date,
                         $leave->leave_reason,
                     ));
+                }
             }
             return response()->json(['success' => __('Data Added successfully.')]);
         }
