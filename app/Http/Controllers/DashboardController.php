@@ -58,12 +58,19 @@ class DashboardController extends Controller {
         $autoUpdateData = $this->general();
         $alertVersionUpgradeEnable = $autoUpdateData['alertVersionUpgradeEnable'];
         $alertBugEnable =  $autoUpdateData['alertBugEnable'];
-
+		
 		$employees = Employee::with('department:id,department_name', 'designation:id,designation_name')
 			->select('id', 'department_id', 'designation_id', 'is_active')
 			->where('is_active', '=', 1)->where('is_active',1)
             ->where('exit_date',NULL)->get();
-
+		
+		$user = auth()->user();
+		
+		$employee = Employee::with('department:id,department_name', 'officeShift')->find($user->id);
+		
+		$employee_attendance = Attendance::where('attendance_date', now()->format('Y-m-d'))
+		->where('employee_id', $employee->id ?? null)->orderBy('id', 'desc')->first() ?? null;
+		
 		$departments = $employees->groupBy('department_id');
 
 
@@ -197,9 +204,10 @@ class DashboardController extends Controller {
 			->where('end_date', '>=', now()->format('Y-m-d'))->select('id', 'title', 'summary')->get();
 
 		$ticket_count = SupportTicket::where('ticket_status', 'open')->count();
+		$current_day_in = strtolower(Carbon::now()->format('l')) . '_in';
+		$current_day_out = strtolower(Carbon::now()->format('l')) . '_out';
 
-
-		return view('dashboard.admin_dashboard', compact('employees', 'attendance_count', 'leave_count', 'total_expense_raw', 'total_deposit_raw', 'total_expense', 'total_deposit', 'total_salaries_paid',
+		return view('dashboard.admin_dashboard', compact('employees', 'employee', 'employee_attendance', 'current_day_in', 'current_day_out','attendance_count', 'leave_count', 'total_expense_raw', 'total_deposit_raw', 'total_expense', 'total_deposit', 'total_salaries_paid',
 			'dept_count_array', 'dept_name_array', 'dept_bgcolor_array', 'dept_hover_bgcolor_array',
 			'desig_count_array', 'desig_name_array', 'desig_bgcolor_array', 'desig_hover_bgcolor_array',
 			'payslips', 'companies', 'leave_types',
