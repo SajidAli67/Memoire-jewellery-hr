@@ -36,6 +36,7 @@ use App\Models\Trainer;
 use App\Models\TrainingType;
 use App\Models\TravelType;
 use App\Models\User;
+use App\Models\Field;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -512,6 +513,9 @@ class DashboardController extends Controller {
 		//checking if emoloyee has attendance on current day
 		$employee_attendance = Attendance::where('attendance_date', now()->format('Y-m-d'))
 				->where('employee_id', $employee->id)->orderBy('id', 'desc')->first() ?? null;
+		
+		$field = Field::where('date', now()->format('Y-m-d'))
+				->where('employee_id', $employee->id)->orderBy('id', 'desc')->first() ?? null;		
 
 		//IP Check
 
@@ -537,7 +541,7 @@ class DashboardController extends Controller {
 			'shift_in', 'shift_out', 'shift_name', 'announcements',
 			'employee_award_count', 'holidays', 'leave_types', 'travel_types',
 			'assigned_projects', 'assigned_projects_count',
-			'assigned_tasks', 'assigned_tasks_count', 'assigned_tickets', 'assigned_tickets_count','ipCheck'));
+			'assigned_tasks', 'assigned_tasks_count', 'assigned_tickets', 'assigned_tickets_count','ipCheck','field'));
 	}
 
 

@@ -32,6 +32,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\DeveloperSectionController;
+use App\Http\Controllers\DocumentWorkFlowController;
 use App\Http\Controllers\DynamicDependent;
 use App\Http\Controllers\EmployeeAssignedController;
 use App\Http\Controllers\EmployeeAwardController;
@@ -461,6 +462,7 @@ Route::group(['middleware' => ['XSS']], function () {
         Route::get('attendances', [AttendanceController::class, 'index'])->name('attendances.index');
         Route::get('date_wise_attendances', [AttendanceController::class, 'dateWiseAttendance'])->name('date_wise_attendances.index');
         Route::get('monthly_attendances', [AttendanceController::class, 'monthlyAttendance'])->name('monthly_attendances.index');
+        Route::get('field_attendances', [AttendanceController::class, 'fieldAttendance'])->name('field.index');
         //New Added
 
         Route::get('payslip', [ReportController::class, 'payslip'])->name('report.payslip');
@@ -538,6 +540,7 @@ Route::group(['middleware' => ['XSS']], function () {
         Route::post('attendances/page/import_device', [AttendanceController::class, 'importDeviceCsv'])->name('attendances.importDeviceCsv');
         Route::post('attendances/page/import', [AttendanceController::class, 'importPost'])->name('attendances.importPost');
         Route::post('attendance/employee/{id}', [AttendanceController::class, 'employeeAttendance'])->name('employee_attendance.post');
+        Route::post('field/employee/{id}', [AttendanceController::class, 'employeeField'])->name('employee_attendance.field');
 
         Route::post('office_shift/update', [OfficeShiftController::class, 'update'])->name('office_shift.update');
         Route::resource('office_shift', OfficeShiftController::class)->except(['destroy', 'update', 'show']);
@@ -555,6 +558,16 @@ Route::group(['middleware' => ['XSS']], function () {
         Route::get('leaves/{id}/delete', [LeaveController::class, 'destroy'])->name('leaves.destroy');
         Route::post('leaves/delete/selected', [LeaveController::class, 'delete_by_selection'])->name('mass_delete_leaves');
         Route::get('leaves/{id}/calendarable', [LeaveController::class, 'calendarableDetails'])->name('leaves.calendarable');
+
+    });
+
+    Route::prefix('workflow')->group(function () {
+        
+        Route::get('approval_workflow',[DocumentWorkFlowController::class,'approval_workflow'])->name('approval_workflow');
+        Route::post('leave_workflow',[DocumentWorkFlowController::class,'leave_workflow'])->name('leave_workflow');
+        Route::get('edit/{id}',[DocumentWorkFlowController::class,'edit']);
+        Route::get('delete/{id}', [DocumentWorkFlowController::class, 'destroy'])->name('workflow.destroy');
+        Route::post('update', [DocumentWorkFlowController::class, 'update'])->name('workflow.update');
 
     });
 
@@ -743,6 +756,9 @@ Route::group(['middleware' => ['XSS']], function () {
     Route::post('dynamic_dependent/company_employee/{ticket}', [DynamicDependent::class, 'companyEmployee'])->name('company_employee');
     Route::post('dynamic_dependent/get_tax_rate', [DynamicDependent::class, 'getTaxRate'])->name('dynamic_tax_rate');
     Route::post('dynamic_dependent/fetch_candidate', [DynamicDependent::class, 'fetchCandidate'])->name('dynamic_candidate');
+    Route::post('dynamic_dependent/fetch_company_candidate', [DynamicDependent::class, 'fetchCandidateCompany'])->name('dynamic_candidate_company');
+    Route::post('dynamic_dependent/fetch_company_designation', [DynamicDependent::class, 'companyDesignation'])->name('company_designation');
+    
 
     Route::prefix('settings')->group(function () {
         Route::resource('roles', RoleController::class);

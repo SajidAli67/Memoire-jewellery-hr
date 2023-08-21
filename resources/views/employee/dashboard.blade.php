@@ -320,10 +320,27 @@
                                                     </div>
 
                                                     <div class="col-md-4 form-group">
+                                                        <label>Line Manager <span class="text-danger">*</span> </label>
+                                                        <input type="hidden" name="line_manager_hidden"
+                                                               value="{{ $employee->line_manager }}"/>
+                                                               
+                                                            <select name="line_manager" id="line_manager" required class="selectpicker form-control"
+                                                                    data-live-search="true" data-live-search-style="contains"
+                                                                    title="{{__('Selecting',['key'=>'Line Manager'])}}...">
+
+                                                                    @foreach($company_user as $user)
+                                                                        <option value="{{$user->id}}">{{ $user->first_name . ' ' . $user->last_name }}</option>
+                                                                    @endforeach
+                                                            </select>
+                                                    </div>
+
+                                                    <div class="col-md-4 form-group">
                                                         <label>{{trans('file.Role')}} <span class="text-danger">*</span></label>
                                                         <input type="hidden" name="role_user_hidden"
                                                                value="{{ $employee->role_users_id }}"/>
-                                                        <select name="role_users_id" id="role_users_id" required @if($employee->role_users_id==1) disabled  @endif
+                                                        <select name="role_users_id" id="role_users_id" required @if($employee->role_users_id==1) readonly
+                                                            
+                                                        @endif
                                                                 class="selectpicker form-control"
                                                                 data-live-search="true"
                                                                 data-live-search-style="contains"
@@ -559,6 +576,7 @@
     $('#company_id').selectpicker('val', $('input[name="company_id_hidden"]').val());
     $('#department_id').selectpicker('val', $('input[name="department_id_hidden"]').val());
     $('#designation_id').selectpicker('val', $('input[name="designation_id_hidden"]').val());
+    $('#line_manager').selectpicker('val', $('input[name="line_manager_hidden"]').val());
 
     $('#status_id').selectpicker('val', $('input[name="status_id_hidden"]').val());
     $('#office_shift_id').selectpicker('val', $('input[name="office_shift_id_hidden"]').val());
@@ -786,6 +804,29 @@
                 success: function (result) {
                     $('select').selectpicker("destroy");
                     $('#designation_id').html(result);
+                    $('select').selectpicker();
+
+                }
+            });
+        }
+    });
+
+
+
+    $('.dynamic').change(function () {
+        
+        if ($(this).val() !== '') {
+            let value = $('#company_id').val();
+            let dependent = $(this).data('line_manager');
+            let _token = $('input[name="_token"]').val();
+            $.ajax({
+                url: "{{ route('dynamic_candidate_company') }}",
+                method: "POST",
+                data: {value: value, _token: _token, dependent: dependent},
+                success: function (result) {
+                    console.log(result)
+                    $('select').selectpicker("destroy");
+                    $('#line_manager').html(result);
                     $('select').selectpicker();
 
                 }

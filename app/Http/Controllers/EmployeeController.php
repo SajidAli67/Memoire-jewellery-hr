@@ -24,6 +24,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Validators\ValidationException;
 use Spatie\Permission\Models\Role;
 use Throwable;
+use ZipArchive;
 
 class EmployeeController extends Controller
 {
@@ -289,6 +290,7 @@ class EmployeeController extends Controller
                         'password' => 'required|min:4|confirmed',
                         'attendance_type' => 'required',
                         'joining_date' => 'required',
+                        'line_manager' => ' required',
                         'profile_photo' => 'nullable|image|max:10240|mimes:jpeg,png,jpg,gif',
                     ]
                 );
@@ -313,6 +315,7 @@ class EmployeeController extends Controller
                 $data['contact_no'] = $request->contact_no;
                 $data['attendance_type'] = $request->attendance_type; //new
                 $data['joining_date'] = $request->joining_date; //new
+                $data['line_manager'] = $request->line_manager; 
                 $data['is_active'] = 1;
 
                 $user = [];
@@ -389,11 +392,13 @@ class EmployeeController extends Controller
             $education_levels = QualificationEducationLevel::select('id', 'name')->get();
             $language_skills = QualificationLanguage::select('id', 'name')->get();
             $general_skills = QualificationSkill::select('id', 'name')->get();
-
+            $company_user = Employee::select('id', 'first_name', 'last_name')
+            ->where('company_id', $employee->company_id)
+            ->get();
             $roles = Role::where('id', '!=', 3)->where('is_active', 1)->select('id', 'name')->get(); //--new--
 
             return view('employee.dashboard', compact('employee', 'countries', 'companies',
-                'departments', 'designations', 'statuses', 'office_shifts', 'document_types', 'education_levels', 'language_skills', 'general_skills', 'roles'));
+                'departments', 'designations', 'statuses', 'office_shifts', 'document_types', 'education_levels', 'language_skills', 'general_skills', 'roles', 'company_user'));
         } else {
             return response()->json(['success' => __('You are not authorized')]);
         }
@@ -466,7 +471,7 @@ class EmployeeController extends Controller
 
     public function infoUpdate(Request $request, $employee)
     {
-        return 12;
+      
         $logged_user = auth()->user();
 
         if ($logged_user->can('modify-details-employee')) {
@@ -509,7 +514,7 @@ class EmployeeController extends Controller
                 $data['company_id'] = $request->company_id;
                 $data['designation_id'] = $request->designation_id;
                 $data['office_shift_id'] = $request->office_shift_id;
-                $data['status_id'] = $request->status_id;
+                // $data['status_id'] = $request->status_id;
                 $data['marital_status'] = $request->marital_status;
                 if ($request->joining_date) {
                     $data['joining_date'] = $request->joining_date;
@@ -532,8 +537,9 @@ class EmployeeController extends Controller
                 $data['role_users_id'] = $request->role_users_id;
                 $data['contact_no'] = $request->contact_no;
                 $data['attendance_type'] = $request->attendance_type;
+                $data['line_manager'] = $request->line_manager;
                 $data['is_active'] = 1;
-
+                   
                 //Leave Calculation
                 // $employee_leave_info = Employee::find($employee);
                 // if ($employee_leave_info->total_leave==0) {
@@ -765,7 +771,9 @@ class EmployeeController extends Controller
             return redirect()->back();
         }
         try {
+            
             Excel::queueImport(new UsersImport(), request()->file('file'));
+            
         } catch (ValidationException $e) {
             $failures = $e->failures();
 

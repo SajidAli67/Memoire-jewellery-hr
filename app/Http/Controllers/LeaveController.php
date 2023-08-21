@@ -22,6 +22,8 @@ use Exception;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Models\DocumentWorkflow;
+
 
 class LeaveController extends Controller
 {
@@ -29,14 +31,22 @@ class LeaveController extends Controller
     public function index()
     {
         $logged_user = auth()->user();
+         $employee = Employee::where('id',auth()->id())->first();
         $companies = company::select('id', 'company_name')->get();
         $leave_types = LeaveType::select('id', 'leave_type', 'allocated_day')->get();
-        $leave = leave::with('employee', 'department', 'LeaveType')->orderBy('id', 'DESC')->get();
+       $leave = leave::with(['department', 'LeaveType'])
+        ->join('employees as e', 'e.id','=', 'leaves.employee_id')
+        ->select('leaves.*');
+       
+        // if($logged_user->role_users_id != 1){
+        //     $leave->where('e.line_manager',auth()->id());
+            
+        // }
 
 
-        if ($logged_user->can('view-leave')) {
+        //if ($logged_user->can('view-leave')) {
             if (request()->ajax()) {
-                return datatables()->of($leave)
+                return datatables()->of($leave->orderBy('leaves.id', 'DESC')->get())
                     ->setRowId(function ($row) {
                         return $row->id;
                     })
@@ -59,10 +69,10 @@ class LeaveController extends Controller
 
                         $button = '<button type="button" name="show" id="' . $data->id . '" class="show_new btn btn-success btn-sm"><i class="dripicons-preview"></i></button>';
                         $button .= '&nbsp;&nbsp;';
-                        if (auth()->user()->can('edit-leave')) {
+                        //if (auth()->user()->can('edit-leave')) {
                             $button .= '<button type="button" name="edit" id="' . $data->id . '" class="edit btn btn-primary btn-sm"><i class="dripicons-pencil"></i></button>';
                             $button .= '&nbsp;&nbsp;';
-                        }
+                        //}
                         if (auth()->user()->can('delete-leave')) {
                             $button .= '<button type="button" name="delete" id="' . $data->id . '" class="delete btn btn-danger btn-sm"><i class="dripicons-trash"></i></button>';
                         }
@@ -73,9 +83,9 @@ class LeaveController extends Controller
             }
 
             return view('timesheet.leave.index', compact('companies', 'leave_types'));
-        }
+       // }
 
-        return abort('403', __('You are not authorized'));
+        //return abort('403', __('You are not authorized'));
     }
 
     public function store(Request $request)
@@ -114,6 +124,12 @@ class LeaveController extends Controller
 
             $leave = LeaveType::findOrFail($request->leave_type);
 
+            // $is_leave = Leave::where('leave_type_id',$request->leave_type)->where('employee_id',$request->employee_id)
+            // ->where('status','pending')->first();
+            // if(!empty($is_leave)){
+            //     return response()->json(['error' => 'Your already request for leaves']);
+            // }
+
             $data = [];
             $data['employee_id'] = $request->employee_id;
             $data['company_id'] = $request->company_id;
@@ -144,17 +160,34 @@ class LeaveController extends Controller
                 $notifiable = User::findOrFail($data['employee_id']);
                 $notifiable->notify(new LeaveNotification($text)); //To Employee
             } elseif ((Auth::user()->role_users_id != 1) && ($leave->is_notify == NULL)) {
+                
                 //get-leave-notification - 294
-                $role_ids = DB::table('role_has_permissions')->where('permission_id', 294)->get()->pluck('role_id');
-                $role_ids[] = 1;
-
-                $notifiable = User::whereIn('role_users_id', $role_ids)->get();
-                foreach ($notifiable as $item) {
-                    $item->notify(new LeaveNotificationToAdmin());
-                }
-
-                //Mail
+                //$role_ids = DB::table('role_has_permissions')->where('permission_id', 294)->get()->pluck('role_id');
+                //$role_ids[] = 1;
+                
                 $department = department::with('DepartmentHead:id,email')->where('id', $request->department_id)->first();
+                $workflow = DocumentWorkflow::select('approver_1st')->where('type','leave')
+                
+                ->where('company_id',$department->company_id)->first();
+                if(!empty($workflow)){
+                    $role_ids[]=$department->department_head;
+                    //$notifiable = User::whereIn('role_users_id', $role_ids)->get();
+                    $employee = Employee::find($request->employee_id);
+                    
+                    $notifiable = User::where('id',$employee->line_manager)->get();
+                    
+                   //$department->department_head->notify(new LeaveNotificationToAdmin());
+                  
+                    foreach ($notifiable as $item) {
+                        
+                        $item->notify(new LeaveNotificationToAdmin());
+                    }
+                }
+                
+                
+               
+                //Mail
+                
                 
                 if(!empty($department->DepartmentHead)){
                 Notification::route('mail', $department->DepartmentHead->email)
@@ -163,7 +196,7 @@ class LeaveController extends Controller
                         $leave->total_days,
                         $leave->start_date,
                         $leave->end_date,
-                        $leave->leave_reason,
+                        $leave->leave_reason
                     ));
                 }
             }
@@ -196,15 +229,32 @@ class LeaveController extends Controller
     {
         if (request()->ajax()) {
             $data = leave::findOrFail($id);
-
+            
             $leaveStartDate = date('Y-m-d', strtotime($data->start_date));
-
+            
             $departments = department::select('id', 'department_name')
                 ->where('company_id', $data->company_id)->get();
 
-            $employees = Employee::select('id', 'first_name', 'last_name')->where('department_id', $data->department_id)->where('is_active', 1)->where('exit_date', NULL)->get();
+            $employees = Employee::select('id', 'first_name', 'last_name','line_manager')->where('department_id', $data->department_id)->where('is_active', 1)->where('exit_date', NULL)->get();
 
-            return response()->json(['data' => $data, 'employees' => $employees, 'departments' => $departments, 'leaveStartDate' => $leaveStartDate]);
+            $workflow = DocumentWorkflow::where('company_id',$data->company_id)->first();
+           
+         
+            $approved=array(
+                'approved_1st'=>'',
+                'approved_2nd'=> $this->get_employee_approved($workflow->approver_2nd, $data->company_id),
+                'approved_3rd'=>  $this->get_employee_approved($workflow->approver_3rd, $data->company_id),
+                'approved_4th'=>  $this->get_employee_approved($workflow->approver_4th, $data->company_id),
+            );
+            if($workflow->approver_1st=='line_manager'){
+                if($employees[0]->line_manager != Auth()->id()){
+                    $approved['approved_1st']='disable';
+                }
+                
+
+            }
+          
+            return response()->json(['data' => $data, 'employees' => $employees, 'departments' => $departments, 'leaveStartDate' => $leaveStartDate,'approved' => $approved]);
         }
     }
 
@@ -212,7 +262,7 @@ class LeaveController extends Controller
     {
         $logged_user = auth()->user();
 
-        if ($logged_user->can('edit-leave')) {
+       // if ($logged_user->can('edit-leave')) {
             $id = $request->hidden_id;
 
             $validator = Validator::make(
@@ -225,7 +275,6 @@ class LeaveController extends Controller
                     'end_date',
                     'leave_reason',
                     'remarks',
-                    'status',
                     'is_notify',
                     'diff_date_hidden',
                     'leave_type_hidden',
@@ -236,7 +285,6 @@ class LeaveController extends Controller
                     'department_id' => 'required',
                     'employee_id' => 'required',
                     'leave_type' => 'required',
-                    'status' => 'required',
                     'start_date' => 'required',
                     'end_date' => 'required|after_or_equal:start_date',
                     'diff_date_hidden' => 'nullable|numeric'
@@ -277,6 +325,46 @@ class LeaveController extends Controller
             if ($request->status) {
                 $data['status'] = $request->status;
             }
+            
+            if($request->approver_1st){
+                $approver_1st =  $this->get_leave_approved($employee_id,$request->company_id,'approver_1st','approver_2nd',$id);
+                if($approver_1st){
+                    $data['approver_1st'] = $request->approver_1st;
+                }
+                else{
+                    return response()->json(['error' =>'You are not authorized']);
+                }
+            }
+            if($request->approver_2nd){
+                $approver_2nd =  $this->get_leave_approved($employee_id,$request->company_id,'approver_2nd','approver_3rd',$id);
+                if($approver_2nd){
+                    $data['approver_2nd'] = $request->approver_2nd;
+                }
+                else{
+                    return response()->json(['error' =>'You are not authorized']);
+                }
+            }
+
+            if($request->approver_3rd){
+                $approver_3rd =  $this->get_leave_approved($employee_id,$request->company_id,'approver_3rd','approver_4th',$id);
+                if($approver_3rd){
+                    $data['approver_3rd'] = $request->approver_3rd;
+                }
+                else{
+                    return response()->json(['error' =>'You are not authorized']);
+                }
+            }
+
+            if($request->approver_4th){
+                $approver_4th =  $this->get_leave_approved($employee_id,$request->company_id,'approver_4th','',$id);
+                if($approver_4th){
+                    $data['approver_4th'] = $request->approver_4th;
+                    $data['status'] = 'approved';
+                }
+                else{
+                    return response()->json(['error' =>'You are not authorized']);
+                }
+            }
 
 
             $leave = leave::find($id);
@@ -304,8 +392,8 @@ class LeaveController extends Controller
                 $notifiable->notify(new LeaveNotification($text)); //To Employee
             }
             return response()->json(['success' => __('Data is successfully updated')]);
-        }
-        return response()->json(['success' => __('You are not authorized')]);
+       // }
+       // return response()->json(['success' => __('You are not authorized')]);
     }
 
 
@@ -441,5 +529,87 @@ class LeaveController extends Controller
 
             return response()->json(['data' => $new]);
         }
+    }
+    
+    private function get_leave_approved($employee_id,$company_id,$approve_step,$next_approve=null,$leave_id){
+        if(!$next_approve){
+             $workflow = DocumentWorkflow::select($approve_step)->where('company_id',$company_id)->first();
+
+        }
+        else{
+            $workflow = DocumentWorkflow::select($approve_step,$next_approve)->where('company_id',$company_id)->first();
+
+        }
+        $leave = leave::find($leave_id);
+     
+        if ($workflow->$approve_step == 'line_manager') {
+            $employee =  Employee::where('line_manager', auth()->id())->where('id', $employee_id)->first();
+           
+            $employee_next =  Employee::where('company_id',$company_id)->where('designation_id', $workflow->$next_approve)->first();
+            $next_employee_user = User::where('id',$employee_next->id)->first();
+            if (!empty($employee)) {
+                if (!empty($next_employee_user)) {
+                    $next_employee_user->notify(new LeaveNotificationToAdmin());
+
+                    /* if (!empty($next_employee_user->email)) {
+                    Notification::route('mail', $next_employee_user->email)
+                        ->notify(new EmployeeLeaveNotification(
+                            $next_employee_user->first_name.'  '. $next_employee_user->last_name,
+                           $leave->total_days,
+                           $leave->start_date,
+                           $leave->end_date,
+                           $leave->leave_reason
+                        ));
+                }*/
+                }
+                return true;
+            } 
+            else{
+                return false;
+
+           }
+        }      
+        else{
+            $employee =  Employee::where('designation_id',$workflow->$approve_step)->where('company_id',$company_id)->first();
+            $employee_next =  Employee::where('company_id',$company_id)->where('designation_id', $workflow->$next_approve)->first();
+            
+            if (!empty($employee)) {
+                if (!empty($employee_next)) {
+                    $next_employee_user = User::where('id',$employee_next->id)->first();
+                    $next_employee_user->notify(new LeaveNotificationToAdmin());
+
+                    /* if (!empty($next_employee_user->email)) {
+                    Notification::route('mail', $next_employee_user->email)
+                        ->notify(new EmployeeLeaveNotification(
+                            $next_employee_user->first_name.'  '. $next_employee_user->last_name,
+                           $leave->total_days,
+                           $leave->start_date,
+                           $leave->end_date,
+                           $leave->leave_reason
+                        ));
+                }*/
+                }
+                return true;
+            } 
+           else{
+                return false;
+
+           }
+        }
+       
+    }
+    
+    private function get_employee_approved($employee_id,$company_id){
+        $employee_approves =  Employee::where('designation_id',$employee_id)->where('company_id',$company_id)->first();
+        if(empty($employee_approves)){
+            return 'disable';
+        }
+        elseif($employee_approves->id==Auth()->id()){
+            return '';
+        }
+        else{
+            return 'disable';
+        }
+
     }
 }

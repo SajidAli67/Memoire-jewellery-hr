@@ -9,7 +9,8 @@ class leave extends Model
 {
 	protected $fillable = [
 		'leave_type_id','company_id','department_id','employee_id','start_date','end_date',
-		'leave_reason','remarks','status','is_notify','total_days'
+		'leave_reason','remarks','status','is_notify','total_days','approver_1st', 'approver_2nd',
+		'approver_3rd', 'approver_4th'
 	];
 
 	public function company(){

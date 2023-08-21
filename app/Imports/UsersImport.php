@@ -18,6 +18,7 @@ use Maatwebsite\Excel\Concerns\WithBatchInserts;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
+use ZipArchive;
 
 class UsersImport implements ToModel,WithHeadingRow, ShouldQueue,WithChunkReading,WithBatchInserts, WithValidation
 {
@@ -28,9 +29,11 @@ class UsersImport implements ToModel,WithHeadingRow, ShouldQueue,WithChunkReadin
     */
 
 	use Importable;
-
+	
     public function model(array $row)
 	{
+		
+		
         $comapny_name     =  $row['company_name'];
         $department_name  =  $row['department_name'];
         $designation_name =  $row['designation_name'];
@@ -44,7 +47,7 @@ class UsersImport implements ToModel,WithHeadingRow, ShouldQueue,WithChunkReadin
         $office_shift = office_shift::where('shift_name',$shift_name)->where('company_id',$company->id)->select('id')->first();
         $role = Role::where('name',$role_name)->select('id')->first();
         $country = Country::where('name',$country_name)->select('id')->first();
-
+		
 
 		$user = User::create([
 			'first_name' => $row['first_name'],
@@ -83,6 +86,7 @@ class UsersImport implements ToModel,WithHeadingRow, ShouldQueue,WithChunkReadin
 
 	public function rules(): array
 	{
+		
 		return [
 			'first_name' => 'required',
 			'last_name' => 'required',
