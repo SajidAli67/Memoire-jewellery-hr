@@ -22,29 +22,30 @@
     <div class="container-fluid">
 
         <div class="d-flex justify-content-end mb-30px">
+            <button type="button" name="show" id="filed_btn" class=" mr-2 show_new btn {{ (!$field || $field->clock_in_out== 0) ? 'btn-primary' : 'btn-danger'  }}  btn-sm"><i class="dripicons-enter"></i> {{(!$field || $field->clock_in_out== 0) ? 'Field In' : 'Field Out'}}</button>
             @if (env('ENABLE_CLOCKIN_CLOCKOUT')!=NULL)
-                @if(!empty($employee))
-                @php
-                    $shift_in = $employee->officeShift->$current_day_in;
-                    $shift_out = $employee->officeShift->$current_day_out;
-                    $shift_name = $employee->officeShift->shift_name;
-                @endphp
-                <form class="d-inline m1-2" action="{{route('employee_attendance.post',$employee->id)}}" name="set_clocking" id="set_clocking" autocomplete="off" class="form" method="post" accept-charset="utf-8">
-                    @csrf
+            @if(!empty($employee))
+            @php
+            $shift_in = $employee->officeShift->$current_day_in;
+            $shift_out = $employee->officeShift->$current_day_out;
+            $shift_name = $employee->officeShift->shift_name;
+            @endphp
+            <form class="d-inline m1-2" action="{{route('employee_attendance.post',$employee->id)}}" name="set_clocking" id="set_clocking" autocomplete="off" class="form" method="post" accept-charset="utf-8">
+                @csrf
 
-                    <input type="hidden" value="{{$shift_in}}" name="office_shift_in" id="shift_in">
-                    <input type="hidden" value="{{$shift_out}}" name="office_shift_out" id="shift_out">
-                    <input type="hidden" value="" name="in_out_value" id="in_out">
+                <input type="hidden" value="{{$shift_in}}" name="office_shift_in" id="shift_in">
+                <input type="hidden" value="{{$shift_out}}" name="office_shift_out" id="shift_out">
+                <input type="hidden" value="" name="in_out_value" id="in_out">
 
-                    @if(!$employee_attendance || $employee_attendance->clock_in_out== 0)
-                    <button class="btn btn-success btn-sm" @if($employee->attendance_type=='ip_based' && $ipCheck!=true) disabled @endif type="submit" id="clock_in_btn"><i class="dripicons-enter"></i> {{__('Clock IN')}}</button>
-                    @else
-                    <button class="btn btn-danger btn-sm" @if($employee->attendance_type=='ip_based' && $ipCheck!=true) disabled @endif type="submit" id="clock_out_btn"><i class="dripicons-exit"></i> {{__('Clock OUT')}}</button>
-                    @endif
-                    {{-- <br> --}}
-                    @if($employee->attendance_type=='ip_based' && $ipCheck!=true) <small class="text-danger"><i>[Please login with your office's internet to clock in or clock out]</i></small> @endif
-                </form>
+                @if(!$employee_attendance || $employee_attendance->clock_in_out== 0)
+                <button class="btn btn-success btn-sm" @if($employee->attendance_type=='ip_based' && $ipCheck!=true) disabled @endif type="submit" id="clock_in_btn"><i class="dripicons-enter"></i> {{__('Clock IN')}}</button>
+                @else
+                <button class="btn btn-danger btn-sm" @if($employee->attendance_type=='ip_based' && $ipCheck!=true) disabled @endif type="submit" id="clock_out_btn"><i class="dripicons-exit"></i> {{__('Clock OUT')}}</button>
                 @endif
+                {{-- <br> --}}
+                @if($employee->attendance_type=='ip_based' && $ipCheck!=true) <small class="text-danger"><i>[Please login with your office's internet to clock in or clock out]</i></small> @endif
+            </form>
+            @endif
             @endif
 
         </div>
@@ -209,6 +210,80 @@
     </div>
 
 </section>
+
+<div id="formModal" class="modal fade" role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 id="exampleModalLabel" class="modal-title">Fiels</h5>
+                <button type="button" data-dismiss="modal" id="close" aria-label="Close" class="close"><i class="dripicons-cross"></i></button>
+            </div>
+            <form class="d-inline m1-2" action="{{route('employee_attendance.field',$employee->id)}}" name="set_clocking" id="set_clocking" autocomplete="off" class="form" method="post" accept-charset="utf-8" enctype="multipart/form-data">
+
+                <div class="modal-body">
+                    @csrf
+                    @if(!$field || $field->clock_in_out== 0)
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div id="results">Your captured image will appear here...</div>
+                        </div>
+
+                        <input type="hidden" name="latitude" id="latitude">
+                        <input type="hidden" name="longitude" id="longitude">
+
+                        <div class="col-md-12 form-group">
+                            <button class="btn bnt-default btn-block" type="button" id="take_shot">Take Snapshot</button>
+                            <input type="hidden" name="image" class="image-tag">
+                        </div>
+
+                    </div>
+                    @endif
+
+
+                    <input type="hidden" value="{{ (!$field || $field->clock_in_out== 0) ?  ''  : $field->id  }}" name="field_id" id="field_id">
+                </div>
+                <div class="modal-footer">
+                    @if(!$field || $field->clock_in_out== 0)
+                    <button class="btn btn-success btn-sm" type="submit" id="clock_in_btn"><i class="dripicons-enter"></i> Field In</button>
+                    @else
+                    <button class="btn btn-danger btn-sm" type="submit" id="clock_out_btn"><i class="dripicons-exit"></i> Field Out</button>
+                    @endif
+
+
+                    <button type="button" class="btn btn-default" data-dismiss="modal">{{trans('file.Close')}}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="divice_shot" class="modal fade" role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 id="exampleModalLabel" class="modal-title">Fiels</h5>
+                <button type="button" data-dismiss="modal" id="close" aria-label="Close" class="close"><i class="dripicons-cross"></i></button>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="row">
+
+                    <div class="col-md-12">
+                        <div id="my_camera"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <input type="button" value="Take Snapshot" onClick="take_snapshot()">
+                <button type="button" class="btn btn-default" data-dismiss="modal">{{trans('file.Close')}}</button>
+            </div>
+
+        </div>
+    </div>
+</div>
 @endsection
 
 
@@ -225,4 +300,45 @@
 </script>
 <script type="text/javascript" src="{{asset('js/admin/common/general_data.js')}}"></script>
 <script type="text/javascript" src="{{asset('js/admin/dashboard/notification.js')}}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/webcamjs/1.0.25/webcam.min.js"></script>
+<script>
+    $('#filed_btn').on('click', function() {
+        $('#formModal').modal('show');
+
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(showPosition);
+        } else {
+            alert("Geolocation is not supported by this browser.");
+        }
+
+    });
+    $('#take_shot').on('click', function() {
+        $('#divice_shot').modal('show');
+        Webcam.set({
+            width: 350,
+            height: 350,
+            image_format: 'jpeg',
+            jpeg_quality: 90
+        });
+
+        Webcam.attach('#my_camera');
+    });
+
+    function take_snapshot() {
+
+        Webcam.snap(function(data_uri) {
+            $(".image-tag").val(data_uri);
+            document.getElementById('results').innerHTML = '<img src="' + data_uri + '"/>';
+        });
+        Webcam.reset();
+        $('#divice_shot').modal('hide');
+    }
+
+    function showPosition(position) {
+        $('#longitude').val(position.coords.longitude)
+        $('#latitude').val(position.coords.latitude)
+
+    }
+</script>
 @endpush
