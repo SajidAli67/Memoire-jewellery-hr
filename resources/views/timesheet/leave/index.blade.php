@@ -125,9 +125,9 @@
                                           rows="3"></textarea>
                             </div>
 
-                            <div class="col-md-6 form-group">
-                                <label>{{trans('file.Status')}}</label>
-                                <select name="status" id="status" class="form-control selectpicker "
+                            <div class="col-md-3 form-group">
+                                <label>1st Approved</label>
+                                <select name="approver_1st" id="approver_1st" class="form-control selectpicker "
                                         data-live-search="true" data-live-search-style="contains"
                                         title='{{__('Selecting',['key'=>trans('file.Status')])}}...'>
                                     <option value="pending">{{trans('file.Pending')}}</option>
@@ -135,6 +135,41 @@
                                     <option value="rejected">{{trans('file.Rejected')}}</option>
                                 </select>
                             </div>
+
+                            <div class="col-md-3 form-group">
+                                <label>2nd Approved</label>
+                                <select name="approver_2nd" id="approver_2nd" class="form-control selectpicker "
+                                        data-live-search="true" data-live-search-style="contains"
+                                        title='{{__('Selecting',['key'=>trans('file.Status')])}}...'>
+                                    <option value="pending">{{trans('file.Pending')}}</option>
+                                    <option value="approved">{{trans('file.Approved')}}</option>
+                                    <option value="rejected">{{trans('file.Rejected')}}</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-3 form-group">
+                                <label>3rd Approved</label>
+                                <select name="approver_3rd" id="approver_3rd" class="form-control selectpicker "
+                                        data-live-search="true" data-live-search-style="contains"
+                                        title='{{__('Selecting',['key'=>trans('file.Status')])}}...'>
+                                    <option value="pending">{{trans('file.Pending')}}</option>
+                                    <option value="approved">{{trans('file.Approved')}}</option>
+                                    <option value="rejected">{{trans('file.Rejected')}}</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-3 form-group">
+                                <label>4th Approved</label>
+                                <select name="approver_4th" id="approver_4th" class="form-control selectpicker "
+                                        data-live-search="true" data-live-search-style="contains"
+                                        title='{{__('Selecting',['key'=>trans('file.Status')])}}...'>
+                                    <option value="pending">{{trans('file.Pending')}}</option>
+                                    <option value="approved">{{trans('file.Approved')}}</option>
+                                    <option value="rejected">{{trans('file.Rejected')}}</option>
+                                </select>
+                            </div>
+
+                           
 
                             {{-- <div class="col-md-6 form-group">
                                 <div class="custom-control custom-checkbox">
@@ -225,6 +260,26 @@
                                     <tr>
                                         <th>{{trans('file.Status')}}</th>
                                         <td id="status_id"></td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>1st Approved</th>
+                                        <td id="approver_1st_show"></td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>2nd Approved</th>
+                                        <td id="approver_2nd_show"></td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>3rd Approved</th>
+                                        <td id="approver_3rd_show"></td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>4th Approved</th>
+                                        <td id="approver_4th_show"></td>
                                     </tr>
 
                                     <tr>
@@ -596,7 +651,7 @@
                     processData: false,
                     dataType: "json",
                     success: function (data) {
-                        console.log(data);
+                        
                         let html = '';
                         if (data.errors) {
                             html = '<div class="alert alert-danger">';
@@ -642,7 +697,7 @@
                 url: target,
                 dataType: "json",
                 success: function (result) {
-
+                    
                     $('#leave_type_id').html(result.leave_type_name);
                     $('#company_id_show').html(result.company_name);
                     $('#employee_id_show').html(result.employee_name);
@@ -653,6 +708,13 @@
                     $('#total_days_id').html(result.data.total_days);
                     $('#status_id').html(result.data.status);
                     $('#leave_reason_id').html(result.data.leave_reason);
+                    $('#remarks_id').html(result.data.remarks);
+                    $('#approver_1st_show').html(result.data.approver_1st);
+                    $('#approver_2nd_show').html(result.data.approver_2nd);
+                    $('#approver_3rd_show').html(result.data.approver_3rd);
+                    $('#approver_4th_show').html(result.data.approver_4th);
+                    $('#remarks_id').html(result.data.remarks);
+                    $('#remarks_id').html(result.data.remarks);
                     $('#remarks_id').html(result.data.remarks);
 
                     if (result.data.is_half == 1)
@@ -685,12 +747,21 @@
                 url: target,
                 dataType: "json",
                 success: function (html) {
-
+                   
                     let currentDate = new Date().toJSON().slice(0, 10);
                     if (Date.parse(html.leaveStartDate) < Date.parse(currentDate)) {
                         $('#start_date').prop('disabled', true);
                     }
+                    console.log(html)
+                    $("#approver_1st").prop('disabled', html.approved.approved_1st)
+                    $("#approver_2nd").prop('disabled', html.approved.approved_2nd)
+                    $("#approver_3rd").prop('disabled', html.approved.approved_3rd)
+                    $("#approver_4th").prop('disabled', html.approved.approved_4th)
 
+                    $('#approver_1st').selectpicker('val', html.data.approver_1st);
+                    $('#approver_2nd').selectpicker('val', html.data.approver_2nd);
+                    $('#approver_3rd').selectpicker('val', html.data.approver_3rd);
+                    $('#approver_4th').selectpicker('val', html.data.approver_4th);
 
                     $('#status').selectpicker('val', html.data.status);
                     $('#remarks').val(html.data.remarks);

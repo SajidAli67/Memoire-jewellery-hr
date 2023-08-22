@@ -309,6 +309,7 @@ return array (
   'Thursday' => 'Thursday',
   'Ticket' => 'Ticket',
   'Timesheets' => 'Timesheets',
+  'Document_workflow' => 'Document Workflow',
   'Title' => 'Title',
   'To' => 'To',
   'Total' => 'Total',
