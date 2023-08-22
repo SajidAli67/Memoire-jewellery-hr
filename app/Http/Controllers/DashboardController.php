@@ -136,6 +136,9 @@ class DashboardController extends Controller {
 		$leave_count = leave::where('start_date', '<=', now()->format('Y-m-d'))
 			->where('end_date', '>=', now()->format('Y-m-d'))->count();
 
+		$field = Field::where('date', now()->format('Y-m-d'))
+			->where('employee_id', $employee->id)->orderBy('id', 'desc')->first() ?? null;	
+
 		$total_expense_raw = FinanceExpense::sum('amount');
 		$total_deposit_raw = FinanceDeposit::sum('amount');
 		$total_salaries_paid = Payslip::sum('net_salary');
@@ -215,7 +218,7 @@ class DashboardController extends Controller {
 			'training_types', 'trainers', 'travel_types', 'clients', 'projects',
 			'project_count_array', 'project_name_array', 'completed_projects',
 			'announcements', 'ticket_count', 'per_month', 'per_month_payment', 'months', 'this_month_payment', 'last_six_month_payment',
-            'alertBugEnable','alertVersionUpgradeEnable'
+            'alertBugEnable','alertVersionUpgradeEnable', 'field'
         ));
 	}
 
