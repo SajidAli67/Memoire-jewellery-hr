@@ -6,6 +6,7 @@ use App\Models\Attendance;
 use App\Models\company;
 use App\Models\Employee;
 use App\Models\Holiday;
+use App\Models\Field;
 use App\Imports\AttendancesImport;
 use App\Imports\AttendancesImportDevice;
 use Carbon\Carbon;
@@ -17,8 +18,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Validators\ValidationException;
+use Storage;
 
 use App\Http\traits\MonthlyWorkedHours;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class AttendanceController extends Controller {
@@ -397,6 +400,73 @@ class AttendanceController extends Controller {
 		}
 
 		return response()->json(trans('file.Success'));
+	}
+
+	public function employeeField(Request $request, $id){
+		$current_day = now()->format(env('Date_Format'));
+		$current_time = new DateTime(now());
+		//getting the latest instance of employee_attendance
+		$employee_attendance_last = Attendance::where('attendance_date', now()->format('Y-m-d'))
+				->where('employee_id', $id)->orderBy('id', 'desc')->first() ?? null;
+		
+
+		if(empty($employee_attendance_last)){
+			$this->setErrorMessage(__('Clock In First'));
+			return redirect()->back();
+		}
+
+		if($employee_attendance_last->clock_in_out==0){
+			$this->setErrorMessage(__('Clock In First'));
+			return redirect()->back();
+		}
+
+		 $Field = Field::where('id', $request->field_id)
+		 		->orderBy('id', 'desc')->first() ?? null;
+					
+		if(!empty($Field)){
+			$data['clock_out'] =  $current_time->format('H:i');
+			$data['clock_in_out'] = 0;
+			$attendance = Field::findOrFail($request->field_id);
+                    $attendance->update($data);
+
+					$this->setSuccessMessage(__('Field out successful'));
+				return redirect()->back();
+
+		}
+		else{
+			if(empty($request->image)){
+				$this->setErrorMessage(__('Take a pic'));
+				return redirect()->back();
+			}
+
+			$img = $request->image;
+				$folderPath = "employee_field/";
+				
+				$image_parts = explode(";base64,", $img);
+				$image_type_aux = explode("image/", $image_parts[0]);
+				$image_type = $image_type_aux[1];
+				
+				$image_base64 = base64_decode($image_parts[1]);
+				$fileName = uniqid() . '.png';
+				
+				$file = $folderPath . $fileName;
+				
+	
+			$data['employee_id'] = $employee_attendance_last->employee_id;
+			$data['a_id'] = $employee_attendance_last->id;
+			$data['location'] = json_encode(array('latitude'=>$request->latitude,'longitude'=>$request->longitude));
+			$data['clock_in'] = $current_time->format('H:i');
+			$data['date'] = now()->format('Y-m-d');
+			$data['img'] = $fileName;
+			$data['clock_in_out'] = 1;
+			Storage::put($file, $image_base64);
+			
+			$Field = Field::create($data);
+			$this->setSuccessMessage(__('Field In successful'));
+				return redirect()->back();
+		}
+
+		
 	}
 
 
@@ -1167,6 +1237,35 @@ class AttendanceController extends Controller {
 		// return response()->json(['success' => __('You are not authorized')]);
 	}
 
+	public function fieldAttendance(){
+		$Field = Field::with('employee','attendances');
+		$logged_user = auth()->user();
+		if($logged_user->role_users_id != 1){
+			$Field->where('employee_id',$logged_user->id);
+		}
+		if (request()->ajax()){
+			return datatables()->of($Field->get())
+				->addColumn('employee_name', function ($row) {
+					return $row->employee->first_name .''. $row->employee->last_name;
+				})
+				->addColumn('location', function ($row) {
+					$location= json_decode($row->location);
+					//$location->longitude;
+					return "<a href='http://maps.google.com/maps?z=18&q=".$location->latitude.','.$location->longitude.  "' traget='_blank'>view </a>";
+				})
+				->addColumn('img', function ($row) {
+					
+					return "<a href='". asset('uploads/employee_field').'/'.$row->img."' target='_blank'><img src='". asset('uploads/employee_field').'/'.$row->img."' width='30' height='30'></a>" ;
+				})
+				->rawColumns(['location','img'])
+			
+			->make(true);
+		}
+		
+		return view('timesheet.field.index');
+
+	}
+
 
 	public function checkAttendanceStatus($emp, $index)
 	{
@@ -1728,5 +1827,25 @@ class AttendanceController extends Controller {
 
 		return $sum_total;
 	}
+
+	// private	function getAddress($latitude,$longitude){
+	// 	if(!empty($latitude) && !empty($longitude)){
+	// 		//Send request and receive json data by address
+	// 		$geocodeFromLatLong = file_get_contents('http://maps.googleapis.com/maps/api/geocode/json?latlng='.trim($latitude).','.trim($longitude).'&sensor=false'); 
+	// 		dd($geocodeFromLatLong);
+	// 		$output = json_decode($geocodeFromLatLong);
+	// 		$status = $output->status;
+	// 		//Get address from json data
+	// 		$address = ($status=="OK")?$output->results[1]->formatted_address:'';
+	// 		//Return address of the given latitude and longitude
+	// 		if(!empty($address)){
+	// 			return $address;
+	// 		}else{
+	// 			return false;
+	// 		}
+	// 	}else{
+	// 		return false;   
+	// 	}
+	// }
 
 }

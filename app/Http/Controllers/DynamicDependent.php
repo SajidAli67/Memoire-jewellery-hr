@@ -156,4 +156,29 @@ class DynamicDependent extends Controller {
 		return $output;
 	}
 
+	public function fetchCandidateCompany(Request $request){
+		$value = $request->get('value');
+
+		$data = Employee::where('company_id',$value)->get();
+		$output = '';
+		foreach ($data as $row)
+		{
+			$output .= '<option value=' . $row->id . '>' . $row->first_name . ' ' . $row->last_name . '</option>';
+		}
+
+		return $output;
+	}
+	public function companyDesignation(Request $request){
+		$value = $request->get('value');
+
+		$data = designation::where('company_id',$value)->get();
+		$output = '';
+		foreach ($data as $row)
+		{
+			$output .= '<option value=' . $row->id . '>' . $row->designation_name .  '</option>';
+		}
+
+		return $output;
+	}
+
 }

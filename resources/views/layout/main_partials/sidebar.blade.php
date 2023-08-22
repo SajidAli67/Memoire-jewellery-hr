@@ -212,9 +212,14 @@
                                 </li>
 
 
+
+
                                 <li id="monthly_attendance"><a
                                             href="{{route('monthly_attendances.index')}}"> {{__('Monthly Attendances')}}</a>
-                                </li> --}}
+                                </li>
+
+                               
+                                --}}
                         {{-- @endcan  --}}
 
                             @can('edit-attendance')
@@ -239,6 +244,24 @@
                             @can('view-leave')
                                 <li id="leave"><a href="{{route('leaves.index')}}">{{__('Manage Leaves')}}</a></li>
                             @endcan
+                        </ul>
+                    </li>
+                @endcan
+
+                @can('document_workflow')
+                <li class="has-dropdown {{ (request()->is('workflow*')) ? 'active' : '' }}">
+                    <a href="#document_workflow" aria-expanded="false" data-toggle="collapse">
+                            <i class="dripicons-document"></i><span>{{trans('file.Document_workflow')}}</span></a>
+                        <ul id="document_workflow" class="collapse list-unstyled ">
+                                <li>
+                                    <a href="#">Management</a>
+                                </li>
+                                <li>
+                                    <a href="#">Review</a>
+                                </li>
+                                <li>
+                                    <a href="{{ route('approval_workflow') }}">Approval Workflow</a>
+                                </li>
                         </ul>
                     </li>
                 @endcan
@@ -314,6 +337,9 @@
                             <li id="attendance"><a href="{{route('attendances.index')}}">{{__('Daily Attendances')}}</a></li>
                             <li id="date_wise_attendance"><a href="{{route('date_wise_attendances.index')}}"> {{__('Date wise Attendances')}}</a></li>
                             <li id="monthly_attendance"><a href="{{route('monthly_attendances.index')}}"> {{__('Monthly Attendances')}}</a></li>
+                            <li id="Field_attendance"><a
+                                            href="{{route('field.index')}}"> Field</a>
+                                </li>
                             <!--New added End-->
 
                             {{-- @can('report-attendance')

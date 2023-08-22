@@ -178,7 +178,7 @@
                                     <select name="company_id" id="company_id" required
                                             class="form-control selectpicker dynamic"
                                             data-live-search="true" data-live-search-style="contains"
-                                            data-shift_name="shift_name" data-dependent="department_name"
+                                            data-shift_name="shift_name" data-dependent="department_name" data-line_manager="line_manager"
                                             title="{{__('Selecting',['key'=>trans('file.Company')])}}...">
                                         @foreach($companies as $company)
                                             <option value="{{$company->id}}">{{$company->company_name}}</option>
@@ -204,6 +204,14 @@
                                 <select name="designation_id" id="designation_id" required class="selectpicker form-control"
                                         data-live-search="true" data-live-search-style="contains"
                                         title="{{__('Selecting',['key'=>trans('file.Designation')])}}...">
+                                </select>
+                            </div>
+
+                            <div class="col-md-6 form-group">
+                                <label class="text-bold">Line Manager <span class="text-danger">*</span></label>
+                                <select name="line_manager" id="line_manager" required class="selectpicker form-control"
+                                        data-live-search="true" data-live-search-style="contains"
+                                        title="{{__('Selecting',['key'=>'Line Manager'])}}...">
                                 </select>
                             </div>
 
@@ -783,6 +791,29 @@
                     $('select').selectpicker("destroy");
                     $('#office_shift_id_filter').html(result);
                     $('select').selectpicker();
+                }
+            });
+        }
+    });
+
+
+    $('.dynamic').change(function () {
+        
+        if ($(this).val() !== '') {
+            let value = $('#company_id').val();
+            let dependent = $(this).data('line_manager');
+            let _token = $('input[name="_token"]').val();
+            
+            $.ajax({
+                url: "{{ route('dynamic_candidate_company') }}",
+                method: "POST",
+                data: {value: value, _token: _token, dependent: dependent},
+                success: function (result) {
+                    console.log(result)
+                    $('select').selectpicker("destroy");
+                    $('#line_manager').html(result);
+                    $('select').selectpicker();
+
                 }
             });
         }

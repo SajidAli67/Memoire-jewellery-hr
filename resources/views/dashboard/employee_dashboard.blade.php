@@ -31,6 +31,8 @@
                     <a class="btn btn-default btn-sm" id="my_profile" href="{{route('profile')}}">
                         <i class="dripicons-user"></i> {{trans('file.Profile')}}
                     </a>
+                    <button type="button" name="show" id="filed_btn" class="show_new btn {{ (!$field || $field->clock_in_out== 0) ? 'btn-primary' : 'btn-danger'  }}  btn-sm"><i class="dripicons-enter"></i> {{(!$field || $field->clock_in_out== 0) ? 'Field In' : 'Field Out'}}</button>
+
                     @if (env('ENABLE_CLOCKIN_CLOCKOUT')!=NULL)
                     <form class="d-inline m1-2" action="{{route('employee_attendance.post',$employee->id)}}" name="set_clocking"
                           id="set_clocking" autocomplete="off" class="form" method="post" accept-charset="utf-8">
@@ -286,12 +288,12 @@
 
                                 <div class="col-md-4 form-group">
                                     <label>{{__('Start Date')}} *</label>
-                                    <input type="text" name="start_date" id="start_date" class="form-control date" value="">
+                                    <input type="text" name="start_date" id="start_date" class="form-control date" value="" autocomplete="off">
                                 </div>
 
                                 <div class="col-md-4 form-group">
                                     <label>{{__('End Date')}} *</label>
-                                    <input type="text" name="end_date" id="end_date" class="form-control test date" value="">
+                                    <input type="text" name="end_date" id="end_date" class="form-control test date" value=""  autocomplete="off">
                                 </div>
 
                                 <div class="col-md-4 form-group">
@@ -512,8 +514,132 @@
             </div>
         </div>
 
+        <div id="formModal" class="modal fade" role="dialog">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
 
+                    <div class="modal-header">
+                        <h5 id="exampleModalLabel" class="modal-title">Fiels</h5>
+                        <button type="button" data-dismiss="modal" id="close" aria-label="Close" class="close"><i class="dripicons-cross"></i></button>
+                    </div>
+                    <form class="d-inline m1-2" action="{{route('employee_attendance.field',$employee->id)}}" name="set_clocking" id="set_clocking" autocomplete="off" class="form" method="post" accept-charset="utf-8" enctype="multipart/form-data">
+
+                        <div class="modal-body">
+                            @csrf
+                            @if(!$field || $field->clock_in_out== 0)
+                            <div class="row">
+                                <!-- <div class="col-md-12 form-group">
+                                    <label>Location</label>
+                                    <select name="location" id="location" class="form-control selectpicker " data-live-search="true" data-live-search-style="contains" title='{{__('Selecting',['key'=>'location'])}}...'>
+                                        <option value="location_1">Location 1</option>
+                                        <option value="location_2">Location 2</option>
+                                        <option value="location_3">Location 3</option>
+                                    </select>
+                                </div> -->
+
+                                <div class="col-md-12">
+                                    <div id="results">Your captured image will appear here...</div>
+                                </div>
+
+                                <input type="hidden" name="latitude" id="latitude">
+                                <input type="hidden" name="longitude" id="longitude">
+
+                                <div class="col-md-12 form-group">
+                                    <button class="btn bnt-default btn-block" type="button" id="take_shot">Take Snapshot</button>
+                                    <input type="hidden" name="image" class="image-tag">
+                                </div>
+
+                            </div>
+                            @endif
+
+
+                            <input type="hidden" value="{{ (!$field || $field->clock_in_out== 0) ?  ''  : $field->id  }}" name="field_id" id="field_id">
+                        </div>
+                        <div class="modal-footer">
+                            @if(!$field || $field->clock_in_out== 0)
+                            <button class="btn btn-success btn-sm" type="submit" id="clock_in_btn"><i class="dripicons-enter"></i> Field In</button>
+                            @else
+                            <button class="btn btn-danger btn-sm" type="submit" id="clock_out_btn"><i class="dripicons-exit"></i> Field Out</button>
+                            @endif
+
+
+                            <button type="button" class="btn btn-default" data-dismiss="modal">{{trans('file.Close')}}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div id="divice_shot" class="modal fade" role="dialog">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+
+                    <div class="modal-header">
+                        <h5 id="exampleModalLabel" class="modal-title">Fiels</h5>
+                        <button type="button" data-dismiss="modal" id="close" aria-label="Close" class="close"><i class="dripicons-cross"></i></button>
+                    </div>
+
+                    <div class="modal-body">
+
+                        <div class="row">
+
+                            <div class="col-md-12">
+                                <div id="my_camera"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <input type="button" value="Take Snapshot" onClick="take_snapshot()">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">{{trans('file.Close')}}</button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/webcamjs/1.0.25/webcam.min.js"></script>
         <script>
+            $('#filed_btn').on('click', function() {
+            $('#formModal').modal('show');
+
+           
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(showPosition);
+                } else {
+                    alert("Geolocation is not supported by this browser.");
+                }
+           
+        });
+        $('#take_shot').on('click', function() {
+            $('#divice_shot').modal('show');
+
+
+            Webcam.set({
+                width: 350,
+                height: 350,
+                image_format: 'jpeg',
+                jpeg_quality: 90
+            });
+
+            Webcam.attach('#my_camera');
+        });
+
+        function take_snapshot() {
+            
+            Webcam.snap(function(data_uri) {
+                $(".image-tag").val(data_uri);
+                document.getElementById('results').innerHTML = '<img src="' + data_uri + '"/>';
+            });
+            Webcam.reset();
+            $('#divice_shot').modal('hide');
+        }
+
+        function showPosition(position) {
+            $('#longitude').val(position.coords.longitude)
+            $('#latitude').val(position.coords.latitude)
+    
+            }
+
             (function($) {
                 "use strict";
 
